@@ -1,0 +1,33 @@
+{
+    "version": 0,
+    "type": "simple",
+    "id": "5bc4b82224b25100",
+    "name": "test",
+    "description": "test vault",
+    "client_data_hash": "create-credential",
+    "salt": "vault-master-key",
+    "rp_id": "crypto.zyte.dev",
+    "metadata": {
+        "created": "2025-05-19T16:56:48.701088Z",
+        "modified": "2025-05-27T16:25:48.366566Z"
+    },
+    "n": 5,
+    "k": 2,
+    "headers": [
+        {
+            "name": "oldnano",
+            "credential_id": "RDLDel+9omKWwa5eokZTfw+RwxEPRhUv0r0FS5p9wId1CdeDRri0QukYKK2CjWbHL/zbNZw+ETaVrfa0ID8iuQ==",
+            "encrypted_key": "fES0ags18i7sP3X3tzdc15wx3vcy9Sxd32b2SnFmAKE="
+        },
+        {
+            "name": "bio",
+            "credential_id": "ungevClQ2PifDjsi0k+2FbTEAZjxJqYSVyc03F+kbMTUo3b6/18ZhYFKN0PqbNgx+bLefvSQK/RLNFvFe81fZQ==",
+            "encrypted_key": "oS00DQ0vUxcGHhoH2NSsd0qrtyut9UMAq2OQbLUJHAE="
+        },
+        {
+            "name": "5c",
+            "credential_id": "krMOnyu1XRq/YYGuuFSY6FgA2mg2LjaEQIfOCwG32IA30nzticgwWImeddboa8TZgBJH+GSCFkP93IxTkWClaQ==",
+            "encrypted_key": "bPiJ7awfhdjm5RCB33LyjPzDMAudLLcUdMciAClSjlk="
+        }
+    ]
+}
