@@ -11,6 +11,18 @@ import (
 	"fidokit/utils"
 )
 
+func interactiveShamirVaultUnlockMode(vault *fkvault.ShamirVault) {
+	masterKey, err := vault.InteractiveCombine()
+	if err != nil {
+		log.Fatalln("unlock:", err)
+	}
+
+	err = os.WriteFile(outputPath, masterKey, 0600)
+	if err != nil {
+		log.Fatalln("write master key to output file:", err)
+	}
+}
+
 func interactiveShamirVault(vault *fkvault.ShamirVault) {
 	isReady := func() string {
 		if len(vault.Shares) == int(vault.N) {

@@ -11,6 +11,18 @@ import (
 	"fidokit/utils"
 )
 
+func interactiveSimpleVaultUnlockMode(vault *fkvault.SimpleVault) {
+	masterKey, err := vault.InteractiveUnlock()
+	if err != nil {
+		log.Fatalln("unlock:", err)
+	}
+
+	err = os.WriteFile(outputPath, masterKey, 0600)
+	if err != nil {
+		log.Fatalln("write master key to output file:", err)
+	}
+}
+
 func interactiveSimpleVault(vault *fkvault.SimpleVault) {
 	fmt.Println("Vault Info:")
 	fmt.Println("  Type:   ", vault.Type)

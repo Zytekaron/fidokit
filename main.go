@@ -20,17 +20,22 @@ import (
 const debug = false
 
 var vaultPath, inputPath, outputPath string
-var debugMode, disableBiometrics, noAssumptions, skipChecks bool
+var unlockMode, debugMode, disableBiometrics, noAssumptions, skipChecks bool
 
 func init() {
 	pflag.StringVarP(&vaultPath, "vault", "v", "vault.json", "The relative path to your vault, default simple.json")
 	pflag.StringVarP(&inputPath, "input", "i", "stdin", "The file path to read the input from during initialization, default 'stdin'")
 	pflag.StringVarP(&outputPath, "output", "o", "stdout", "The file path to write the output to during unlocking, default 'stdout'")
+	pflag.BoolVarP(&unlockMode, "unlock", "U", false, "Enable unlock mode for scripting contexts")
 	pflag.BoolVarP(&debugMode, "debug", "D", false, "Enable debug mode")
 	pflag.BoolVar(&disableBiometrics, "disable-biometrics", false, "Disable biometric authentication; always use PIN")
 	pflag.BoolVar(&noAssumptions, "no-assumptions", false, "Disable assumptions; always prompt the user to press ENTER before attempting to select a key. Useful if you need more time or are in a special situation regarding what keys are plugged in.")
 	pflag.BoolVar(&skipChecks, "skip-checks", false, "Skip vault integrity verification (for recovery attempts)")
 	pflag.Parse()
+
+	if unlockMode && outputPath == "stdout" {
+		log.Fatalln("Unlock mode must be used with -o/--output")
+	}
 
 	// global variables work, passing config is annoying :)
 	fidoutils.Debug = debugMode
@@ -62,6 +67,10 @@ func main() {
 
 	_, err := os.Open(vaultPath)
 	if os.IsNotExist(err) {
+		if unlockMode {
+			log.Fatalln("vault file not found. specify one using -v/--vault.")
+		}
+
 		fmt.Println("Vault file does not exist. Creating new vault.")
 		for {
 			typ := utils.ReadLine("Enter vault type (simple, shamir): ")
@@ -83,11 +92,20 @@ func main() {
 	anyVault := mustLoadVault(vaultPath)
 	verifyVault(anyVault)
 
-	switch vault := anyVault.(type) {
-	case *fkvault.SimpleVault:
-		interactiveSimpleVault(vault)
-	case *fkvault.ShamirVault:
-		interactiveShamirVault(vault)
+	if unlockMode {
+		switch vault := anyVault.(type) {
+		case *fkvault.SimpleVault:
+			interactiveSimpleVaultUnlockMode(vault)
+		case *fkvault.ShamirVault:
+			interactiveShamirVaultUnlockMode(vault)
+		}
+	} else {
+		switch vault := anyVault.(type) {
+		case *fkvault.SimpleVault:
+			interactiveSimpleVault(vault)
+		case *fkvault.ShamirVault:
+			interactiveShamirVault(vault)
+		}
 	}
 }
 

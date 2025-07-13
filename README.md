@@ -120,6 +120,11 @@ which is no better than simply reinstantiating the vault.
         if you are trying to investigate an error or recover your vault.
         You should also enable this option if submitting a bug report.
 
+    -U, --unlock
+      * Starts the program in "unlock mode", which is used in scripting
+        contexts to prompt the user to directly unlock the vault instead
+        of providing the user with an interactive menu that must be exited.
+
     --disable-biometrics
       * This flag can be used to disable the behavior where PIN entry is
         skipped for keys that support biometrics. This can be used if you
