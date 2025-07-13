@@ -131,7 +131,10 @@ func interactiveSimpleVault(vault *fkvault.SimpleVault) {
 			}
 
 		case "d", "delete":
-			vault.InteractiveDelete()
+			err := vault.InteractiveDelete()
+			if err != nil {
+				log.Fatalln("delete:", err)
+			}
 
 		case "s", "save", "w", "write":
 			mustSaveVault(vaultPath, vault)
