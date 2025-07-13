@@ -29,7 +29,7 @@ func NewSimple(name, description string) *SimpleVault {
 	now := time.Now().UTC()
 	return &SimpleVault{
 		BaseVault: newBase(TypeSimple, now, name, description),
-		Headers:   nil,
+		Headers:   map[string]*VaultHeader{},
 	}
 }
 
@@ -133,7 +133,7 @@ func (v *SimpleVault) InteractiveCreateHeader(credentialID, derivedKey []byte, n
 
 func (v *SimpleVault) InteractiveAdd() error {
 	fmt.Println("Insert the FIDO2 key you want to add.")
-	if !MakeAssumptions || fidoutils.GetConnectedDeviceCount() < 2 {
+	if !MakeAssumptions || fidoutils.GetConnectedDeviceCount() == 0 {
 		utils.ReadLine("Press ENTER when you have inserted the key.")
 	}
 

@@ -12,7 +12,7 @@ var Debug bool
 
 // MakeAssumptions will forego prompting the user to press ENTER after
 // inserting a key for the next step, if and only if there are multiple
-// keys connected (SimpleVault unlock = 1; SimpleVault create/add = 2+;
+// keys connected (SimpleVault unlock/create = 1; SimpleVault add = 2+;
 // ShamirVault create = N+; ShamirVault unlock = K+).
 // The assumption being made here is that the user is plugging in ALL the
 // keys they wish to use at the same time, OR the user knows the flow of
