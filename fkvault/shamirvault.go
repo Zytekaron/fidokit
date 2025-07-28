@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zytekaron/shamir-go"
@@ -61,13 +62,20 @@ func (v *ShamirVault) InteractiveInitialize() error {
 			return fmt.Errorf("decode master key: %w", err)
 		}
 	} else {
-		masterKey = utils.MustGenerateKey()
+		masterKey = utils.RandomBytes(32)
 		fmt.Println("Master Key:", hex.EncodeToString(masterKey))
 	}
 
 	shares, err := shamir.SplitTagged(masterKey, v.K, v.N)
 	if err != nil {
 		return fmt.Errorf("split: %w", err)
+	}
+
+	enableEncryption := utils.ReadNonEmptyLine("Do you want to encrypt the master key with a password? (y/N):")
+	switch strings.ToLower(enableEncryption) {
+	case "y", "yes", "1", "true":
+		v.Encrypted = true
+		v.EncryptionSalt = utils.RandomBytes(16)
 	}
 
 	fmt.Println()
@@ -118,7 +126,21 @@ func (v *ShamirVault) InteractiveInitialize() error {
 			return fmt.Errorf("encrypt vault master key: %w", err)
 		}
 
-		name := utils.ReadLine("Enter a name for this key: ")
+		// transparent encrypt master key
+		if v.Encrypted {
+			pass := utils.ReadNonEmptyLine("Please enter a new vault encryption password: ")
+			key := crypto.HashPassword([]byte(pass), v.EncryptionSalt)
+			aead, err = chacha20poly1305.New(key)
+			if err != nil {
+				return fmt.Errorf("create aead: %w", err)
+			}
+			encryptedKey, err = crypto.EncryptChaCha20(aead, encryptedKey)
+			if err != nil {
+				return fmt.Errorf("encrypt vault master key: %w", err)
+			}
+		}
+
+		name := utils.ReadNonEmptyLine("Enter a name for this key: ")
 
 		v.Shares[i] = &VaultHeader{
 			Name:         name,
@@ -181,7 +203,27 @@ func (v *ShamirVault) InteractiveCombine() ([]byte, error) {
 		decryptMap[index] = decryptedKey
 	}
 
-	return shamir.CombineTagged(decryptMap)
+	masterKey, err := shamir.CombineTagged(decryptMap)
+	if err != nil {
+		return nil, fmt.Errorf("combine: %w", err)
+	}
+
+	// fixme enter into loop for password? possibly delegate responsibility
+	// transparent decrypt master key
+	if v.Encrypted {
+		pass := utils.ReadNonEmptyLine("Vault is encrypted. Enter the vault encryption password: ")
+		key := crypto.HashPassword([]byte(pass), v.EncryptionSalt)
+		aead, err := chacha20poly1305.New(key)
+		if err != nil {
+			return nil, fmt.Errorf("create aead: %w", err)
+		}
+		masterKey, err = crypto.DecryptChaCha20(aead, masterKey)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt vault master key: %w", err)
+		}
+	}
+
+	return masterKey, nil
 }
 
 // DeleteAllHeaders resets the list of headers.

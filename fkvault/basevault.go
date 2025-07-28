@@ -43,6 +43,11 @@ type BaseVault struct {
 	// RPID is the relying party ID.
 	RPID string `json:"rp_id"`
 
+	// Encrypted indicates whether the master key is additionally encrypted using another key.
+	Encrypted bool `json:"encrypted"`
+	// EncryptionSalt is the salt used for encrypting the master key.
+	EncryptionSalt []byte `json:"encryption_salt"`
+
 	// Metadata contains meta-information about the vault.
 	Metadata Metadata `json:"metadata"`
 }

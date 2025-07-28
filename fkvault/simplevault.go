@@ -39,6 +39,7 @@ func NewSimple(name, description string) *SimpleVault {
 // them to recover the vault master key, then re-encrypts it using the
 // key the user wants to add and then adds it to the vault.
 func (v *SimpleVault) InteractiveCreateHeader(credentialID, derivedKey []byte, name string) error {
+	// fixme consider passing masterKey here and delegating responsibility to caller (else: global inputPath)
 	if Debug {
 		fmt.Println("[DEBUG] InteractiveVaultCreateHeader")
 	}
@@ -54,7 +55,7 @@ func (v *SimpleVault) InteractiveCreateHeader(credentialID, derivedKey []byte, n
 				log.Fatalln("decode master key:", err)
 			}
 		} else {
-			masterKey = utils.MustGenerateKey()
+			masterKey = utils.RandomBytes(32)
 			fmt.Println("Master Key:", hex.EncodeToString(masterKey))
 		}
 
@@ -65,6 +66,27 @@ func (v *SimpleVault) InteractiveCreateHeader(credentialID, derivedKey []byte, n
 		encryptedKey, err := crypto.EncryptChaCha20(aead, masterKey)
 		if err != nil {
 			return fmt.Errorf("encrypt vault master key: %w", err)
+		}
+
+		enableEncryption := utils.ReadNonEmptyLine("Do you want to encrypt the master key with a password? (y/N):")
+		switch strings.ToLower(enableEncryption) {
+		case "y", "yes", "1", "true":
+			v.Encrypted = true
+			v.EncryptionSalt = utils.RandomBytes(16)
+		}
+
+		// transparent encrypt master key
+		if v.Encrypted {
+			pass := utils.ReadNonEmptyLine("Please enter a new vault encryption password: ")
+			key := crypto.HashPassword([]byte(pass), v.EncryptionSalt)
+			aead, err = chacha20poly1305.New(key)
+			if err != nil {
+				return fmt.Errorf("create aead: %w", err)
+			}
+			encryptedKey, err = crypto.EncryptChaCha20(aead, encryptedKey)
+			if err != nil {
+				return fmt.Errorf("encrypt vault master key: %w", err)
+			}
 		}
 
 		v.Headers[name] = &VaultHeader{
@@ -110,6 +132,21 @@ func (v *SimpleVault) InteractiveCreateHeader(credentialID, derivedKey []byte, n
 	decryptedKey, err := crypto.DecryptChaCha20(aead, originalEncryptedKey)
 	if err != nil {
 		return fmt.Errorf("decrypt vault master key: %w", err)
+	}
+
+	// fixme enter into loop for password? possibly delegate responsibility
+	// transparent decrypt master key
+	if v.Encrypted {
+		pass := utils.ReadNonEmptyLine("Vault is encrypted. Please enter the vault encryption password: ")
+		key := crypto.HashPassword([]byte(pass), v.EncryptionSalt)
+		aead, err := chacha20poly1305.New(key)
+		if err != nil {
+			return fmt.Errorf("create aead: %w", err)
+		}
+		decryptedKey, err = crypto.DecryptChaCha20(aead, decryptedKey)
+		if err != nil {
+			return fmt.Errorf("decrypt vault master key: %w", err)
+		}
 	}
 
 	// encrypt the vault master key with the new key
@@ -176,7 +213,7 @@ func (v *SimpleVault) InteractiveAdd() error {
 func (v *SimpleVault) InteractiveDelete() error {
 	name := ""
 	for name == "" {
-		name = utils.ReadLine("Enter key name to delete: ")
+		name = utils.ReadNonEmptyLine("Enter key name to delete: ")
 	}
 
 	err := v.DeleteHeader(name)
@@ -231,6 +268,21 @@ func (v *SimpleVault) InteractiveUnlock() ([]byte, error) {
 	masterKey, err := crypto.DecryptChaCha20(aead, encryptedKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt: %w", err)
+	}
+
+	// fixme enter into loop for password? possibly delegate responsibility
+	// transparent decrypt master key
+	if v.Encrypted {
+		pass := utils.ReadNonEmptyLine("Vault is encrypted. Enter the vault encryption password: ")
+		key := crypto.HashPassword([]byte(pass), v.EncryptionSalt)
+		aead, err := chacha20poly1305.New(key)
+		if err != nil {
+			return nil, fmt.Errorf("create aead: %w", err)
+		}
+		masterKey, err = crypto.DecryptChaCha20(aead, masterKey)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt vault master key: %w", err)
+		}
 	}
 
 	return masterKey, nil

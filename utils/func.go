@@ -5,15 +5,6 @@ import (
 	"encoding/hex"
 )
 
-func MustGenerateKey() []byte {
-	buf := make([]byte, 32)
-	_, err := rand.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-	return buf
-}
-
 func RandomID() string {
 	buf := make([]byte, 8)
 	_, err := rand.Read(buf)
@@ -21,6 +12,15 @@ func RandomID() string {
 		panic(err)
 	}
 	return hex.EncodeToString(buf)
+}
+
+func RandomBytes(n int) []byte {
+	buf := make([]byte, n)
+	_, err := rand.Read(buf)
+	if err != nil {
+		panic(err)
+	}
+	return buf
 }
 
 //func SecureZero(b []byte) {
