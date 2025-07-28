@@ -181,7 +181,7 @@ func verifyVault(anyVault any) {
 	fmt.Println("All contents of the vault are useless without keys, so you")
 	fmt.Println("can send the contents of the vault over to me for analysis.")
 	fmt.Println()
-	fmt.Println("https://github.com/zytekaron/fidokit") // fixme
+	fmt.Println("https://github.com/zytekaron/fidokit")
 	fmt.Println("https://zyte.dev/contact")
 	fmt.Println()
 
@@ -191,14 +191,14 @@ func verifyVault(anyVault any) {
 func verifySimpleVault(v *fkvault.SimpleVault) error {
 	for name, header := range v.Headers {
 		if name != header.Name {
-			return fmt.Errorf("header key '%s' and value name '%s' do not match", name, header.Name)
+			return fmt.Errorf("header key '%s' and value name '%s' do not match (suspicious)", name, header.Name)
 		}
 
 		if len(header.CredentialID) == 0 {
-			return fmt.Errorf("CredentialID is missing or empty for '%s'", name)
+			return fmt.Errorf("CredentialID is missing or empty for '%s' (invalid)", name)
 		}
 		if len(header.EncryptedKey) == 0 {
-			return fmt.Errorf("EncryptedKey is missing or empty for '%s'", name)
+			return fmt.Errorf("EncryptedKey is missing or empty for '%s' (invalid)", name)
 		}
 	}
 
@@ -208,28 +208,28 @@ func verifySimpleVault(v *fkvault.SimpleVault) error {
 func verifyShamirVault(v *fkvault.ShamirVault) error {
 	// constraint: 2 <= k <= 255
 	if v.K < 2 {
-		return errors.New("k is out of bounds (2 <= k <= 255)")
+		return errors.New("k is out of bounds (2 <= k <= 255) (invalid)")
 	}
 	// constraint: k <= n <= 255
 	if v.N < v.K {
-		return errors.New("n is out of bounds (k <= n <= 255)")
+		return errors.New("n is out of bounds (k <= n <= 255) (invalid)")
 	}
 
 	// 0 = uninitialized; n = initialized
 	if len(v.Shares) != 0 && len(v.Shares) != int(v.N) {
-		return errors.New("invalid number of shares compared to n")
+		return errors.New("invalid number of shares compared to n (invalid)")
 	}
 
 	for index, share := range v.Shares {
 		if index < 0 || index > v.N {
-			return errors.New("invalid number of shares compared to n")
+			return errors.New("invalid number of shares compared to n (invalid)")
 		}
 
 		if len(share.CredentialID) == 0 {
-			return fmt.Errorf("CredentialID is missing or empty for '%d'", index)
+			return fmt.Errorf("CredentialID is missing or empty for '%d' (invalid)", index)
 		}
 		if len(share.EncryptedKey) == 0 {
-			return fmt.Errorf("EncryptedKey is missing or empty for '%d'", index)
+			return fmt.Errorf("EncryptedKey is missing or empty for '%d' (invalid)", index)
 		}
 	}
 
@@ -238,24 +238,31 @@ func verifyShamirVault(v *fkvault.ShamirVault) error {
 
 func verifyBaseVault(v *fkvault.BaseVault) error {
 	if v.Version < 0 {
-		return errors.New("version is negative")
+		return errors.New("version is negative (invalid)")
 	}
 	if v.Version > fkvault.CurrentVaultVersion {
-		return errors.New("version is greater than the latest version known to this build")
+		return errors.New("version is greater than the latest version known to this build (suspicious)")
 	}
 
 	if !slices.Contains(fkvault.Types, v.Type) {
-		return errors.New("invalid vault type")
+		return errors.New("unknown vault type (invalid)")
 	}
 
 	if v.ClientDataHashText == "" {
-		return errors.New("ClientDataHashText is empty")
+		return errors.New("ClientDataHashText is empty (invalid)")
 	}
 	if v.AssertionSaltText == "" {
-		return errors.New("AssertionSaltText is empty")
+		return errors.New("AssertionSaltText is empty (invalid)")
 	}
 	if v.RPID == "" {
-		return errors.New("RPID is empty")
+		return errors.New("RPID is empty (invalid)")
+	}
+
+	if v.Encrypted && len(v.EncryptionSalt) != 16 {
+		return errors.New("EncryptionSalt is not correct while Encrypted is true (invalid)")
+	}
+	if v.Encrypted && v.EncryptionSalt != nil {
+		return errors.New("EncryptionSalt is present while Encrypted is false (suspicious)")
 	}
 
 	// disabled: non-critical
